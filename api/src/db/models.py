@@ -41,7 +41,13 @@ class Course(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     default_prompt = Column(String, nullable=False)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+
+class UserCourses(Base):
+    __tablename__ = "user_courses"
+
+    user_id = Column(BigInteger, ForeignKey("users.id"), primary_key=True)
+    course_id = Column(BigInteger, ForeignKey("courses.id"), primary_key=True)
 
 
 class Message(Base):
