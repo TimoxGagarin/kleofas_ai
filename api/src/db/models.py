@@ -33,3 +33,41 @@ class User(Base):
     avatar = Column(String, nullable=False)
     is_admin = Column(Boolean, nullable=False)
     is_enabled = Column(Boolean, nullable=False)
+
+
+class Course(Base):
+    __tablename__ = "courses"
+
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    default_prompt = Column(String, nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    text = Column(String, nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+
+
+class Material(Base):
+    __tablename__ = "materials"
+
+    url = Column(String, nullable=False)
+    message_id = Column(BigInteger, ForeignKey("messages.id"), nullable=False)
+
+
+class Test(Base):
+    __tablename__ = "tests"
+
+    title = Column(String, nullable=False)
+    message_id = Column(BigInteger, ForeignKey("messages.id"), nullable=False)
+
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    text = Column(String, nullable=False)
+    is_correct = Column(Boolean, nullable=False)
+    message_id = Column(BigInteger, ForeignKey("messages.id"), nullable=False)
