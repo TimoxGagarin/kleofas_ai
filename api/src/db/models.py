@@ -3,8 +3,6 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-
-    id = Column(BigInteger, primary_key=True)
     created_at = Column(DateTime, server_default=func.now())
 
     def to_dict(self):
@@ -18,6 +16,7 @@ class Base(DeclarativeBase):
 class SSOProvider(Base):
     __tablename__ = "sso_providers"
 
+    id = Column(BigInteger, primary_key=True)
     name = Column(String, nullable=False)
     client_id = Column(String, nullable=False)
     client_secret = Column(String, nullable=False)
@@ -26,6 +25,7 @@ class SSOProvider(Base):
 class User(Base):
     __tablename__ = "users"
 
+    id = Column(BigInteger, primary_key=True)
     user_id = Column(BigInteger, nullable=False)
     sso_type = Column(BigInteger, ForeignKey("sso_providers.id"), nullable=False)
     username = Column(String, nullable=False)
@@ -38,6 +38,7 @@ class User(Base):
 class Course(Base):
     __tablename__ = "courses"
 
+    id = Column(BigInteger, primary_key=True)
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     default_prompt = Column(String, nullable=False)
@@ -53,6 +54,7 @@ class UserCourses(Base):
 class Message(Base):
     __tablename__ = "messages"
 
+    id = Column(BigInteger, primary_key=True)
     text = Column(String, nullable=False)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
 
@@ -60,6 +62,7 @@ class Message(Base):
 class Material(Base):
     __tablename__ = "materials"
 
+    id = Column(BigInteger, primary_key=True)
     url = Column(String, nullable=False)
     message_id = Column(BigInteger, ForeignKey("messages.id"), nullable=False)
 
@@ -67,6 +70,7 @@ class Material(Base):
 class Test(Base):
     __tablename__ = "tests"
 
+    id = Column(BigInteger, primary_key=True)
     title = Column(String, nullable=False)
     message_id = Column(BigInteger, ForeignKey("messages.id"), nullable=False)
 
@@ -74,6 +78,7 @@ class Test(Base):
 class Question(Base):
     __tablename__ = "questions"
 
+    id = Column(BigInteger, primary_key=True)
     text = Column(String, nullable=False)
     is_correct = Column(Boolean, nullable=False)
     message_id = Column(BigInteger, ForeignKey("messages.id"), nullable=False)

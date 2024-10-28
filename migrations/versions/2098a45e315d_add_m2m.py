@@ -1,8 +1,8 @@
 """add m2m
 
-Revision ID: 4c2170093f33
+Revision ID: 2098a45e315d
 Revises: d71bd7a68d9a
-Create Date: 2024-10-28 23:45:48.872570
+Create Date: 2024-10-28 23:57:15.331979
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '4c2170093f33'
+revision: str = '2098a45e315d'
 down_revision: Union[str, None] = 'd71bd7a68d9a'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -23,11 +23,10 @@ def upgrade() -> None:
     op.create_table('user_courses',
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('course_id', sa.BigInteger(), nullable=False),
-    sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.ForeignKeyConstraint(['course_id'], ['courses.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('user_id', 'course_id', 'id')
+    sa.PrimaryKeyConstraint('user_id', 'course_id')
     )
     op.drop_constraint('courses_user_id_fkey', 'courses', type_='foreignkey')
     op.drop_column('courses', 'user_id')
