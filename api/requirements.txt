@@ -1,0 +1,7 @@
+fastapi
+sqlalchemy
+uvicorn
+pydantic
+pydantic_settings
+fastapi-sso
+redis

@@ -1,0 +1,14 @@
+[tool.black]
+line-length = 127
+preview = true
+
+[tool.isort]
+profile = "black"
+line_length = 127
+known_first_party = ["api", "tests", "src"]
+
+[tool.pytest.ini_options]
+addopts = "-s"
+pythonpath = ". api"
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
