@@ -53,14 +53,15 @@ async def create_message(message: CreateMessage, user: Annotated[dict, Depends(g
 
 @router.get("")
 async def get_messages(
-    course_id: int,
-    user_id: int,
+    course_id: int | None = None,
+    user_id: int | None = None,
     offset: int | None = None,
     limit: int | None = None,
     *,
     admin: Annotated[dict, Depends(admin_required)]
 ):
-    return await MessagesDAO.find_all(course_id=course_id, user_id=user_id, offset=offset, limit=limit)
+    params = {k: v for k, v in {"course_id": course_id, "user_id": user_id}.items() if v}
+    return await MessagesDAO.find_all(**params, offset=offset, limit=limit)
 
 
 @router.get("/{message_id}")

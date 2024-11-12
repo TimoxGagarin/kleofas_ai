@@ -16,11 +16,7 @@ router = APIRouter(prefix="/tests", tags=["tests"])
 async def get_tests(
     course_id: int | None = None, user_id: int | None = None, *, admin: Annotated[dict, Depends(admin_required)]
 ) -> list[DisplayTest]:
-    params = {"course_id": course_id, "user_id": user_id}
-    if not course_id:
-        del params["course_id"]
-    if not user_id:
-        del params["user_id"]
+    params = {k: v for k, v in {"course_id": course_id, "user_id": user_id}.items() if v}
 
     if user_id:
         user = await UsersDAO.find_by_id(user_id)
