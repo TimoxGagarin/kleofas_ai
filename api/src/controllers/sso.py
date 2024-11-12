@@ -12,7 +12,7 @@ from api.src.exceptions import UnknownSSOProvider
 from api.src.schemas.sso import CreateSSO, UpdateSSO
 from api.src.schemas.users import DisplayUser
 from api.src.settings import settings
-from api.src.utils.sessions import admin_required, create_session, get_current_user
+from api.src.utils.sessions import admin_required, create_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -82,11 +82,6 @@ async def sso_callback(response: Response, request: Request, sso_provider: str) 
     session_id = await create_session(json.dumps(user.to_dict(), default=default_converter))
     response.set_cookie(key=settings.SESSION_COOKIE_NAME, value=session_id, httponly=True)
     return user
-
-
-@router.get("/me")
-async def get_me(user: dict = Depends(get_current_user)) -> DisplayUser:
-    return DisplayUser(**user)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
