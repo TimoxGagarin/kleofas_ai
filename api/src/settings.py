@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     SESSION_COOKIE_NAME: str = Field("kleofas_session")
     BASE_URL: str
+    FLOWER_URL: str = "http://localhost:5555"
     SESSION_SECRET: str
 
     AWS_ACCESS_KEY_ID: str = ""

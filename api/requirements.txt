@@ -9,3 +9,5 @@ celery
 flower
 httpx_oauth
 faker
+starlette-admin
+psycopg

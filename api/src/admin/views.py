@@ -31,7 +31,12 @@ class UserView(ModelView):
 class OAuthAccountView(ModelView):
     row_actions = ["view"]
     label = "OAuth accounts"
-    exclude_fields_from_list = ["access_token", "expires_at", "refresh_token", "account_id"]
+    exclude_fields_from_list = [
+        "access_token",
+        "expires_at",
+        "refresh_token",
+        "account_id",
+    ]
     searchable_fields = ["id", "oauth_name", "account_email"]
     exclude_fields_from_detail = ["hashed_password"]
     exclude_fields_from_edit = ["hashed_password", "created_at", "avatar_id", "email"]
@@ -40,25 +45,20 @@ class OAuthAccountView(ModelView):
         return False
 
 
-class TopicAdmin(ModelView):
-    label = "Topics"
-    exclude_fields_from_list = ["levels", "words", "phrases", "rules"]
+class MessageView(ModelView):
+    label = "Messages"
 
 
-class LevelAdmin(ModelView):
-    label = "Levels"
+class CourseView(ModelView):
+    label = "Courses"
 
 
-class WordAdmin(ModelView):
-    label = "Words"
+class TestView(ModelView):
+    label = "Tests"
 
 
-class PhraseAdmin(ModelView):
-    label = "Phrases"
-
-
-class RuleAdmin(ModelView):
-    label = "Rules"
+class MaterialView(ModelView):
+    label = "Materials"
 
 
 class FlowerView(CustomView):

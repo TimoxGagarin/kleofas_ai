@@ -110,6 +110,9 @@ class Course(Base):
     users = relationship("Users", secondary="user_courses", back_populates="courses")
     messages = relationship("Message", back_populates="course")
 
+    async def __admin_repr__(self, request: Request):
+        return self.title
+
 
 class UserCourses(Base):
     __tablename__ = "user_courses"
@@ -151,6 +154,9 @@ class Message(Base):
     )
     course = relationship("Course", back_populates="messages")
 
+    async def __admin_repr__(self, request: Request):
+        return f"Message: {self.text[:20]}.."
+
 
 class Material(Base):
     __tablename__ = "materials"
@@ -162,6 +168,9 @@ class Material(Base):
     )
 
     message = relationship("Message", back_populates="materials")
+
+    async def __admin_repr__(self, request: Request):
+        return f"Material: {self.url[:20]}.."
 
 
 class Test(Base):
@@ -178,6 +187,9 @@ class Test(Base):
         "Question", back_populates="test", cascade="all, delete", lazy="joined"
     )
 
+    async def __admin_repr__(self, request: Request):
+        return f"Test: {self.title}"
+
 
 class Question(Base):
     __tablename__ = "questions"
@@ -190,3 +202,6 @@ class Question(Base):
     )
 
     test = relationship("Test", back_populates="questions")
+
+    async def __admin_repr__(self, request: Request):
+        return f"Question: {self.text}"
