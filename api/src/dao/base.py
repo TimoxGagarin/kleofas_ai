@@ -1,4 +1,4 @@
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import selectinload
 
 from api.src.db.config import async_session
@@ -12,7 +12,7 @@ class BaseDAO:
         async with async_session() as session:
             query = select(cls.model).filter_by(id=model_id)
             result = await session.execute(query)
-            return result.scalar_one_or_none()
+            return result.unique().scalar_one_or_none()
 
     @classmethod
     async def find_one_or_none(cls, **filter_by):
@@ -22,9 +22,17 @@ class BaseDAO:
             return result.scalar_one_or_none()
 
     @classmethod
-    async def find_all(cls, offset: int | None = None, limit: int | None = None, **filter_by):
+    async def find_all(
+        cls, offset: int | None = None, limit: int | None = None, **filter_by
+    ):
         async with async_session() as session:
-            query = select(cls.model).filter_by(**filter_by).options(selectinload("*")).offset(offset).limit(limit)
+            query = (
+                select(cls.model)
+                .filter_by(**filter_by)
+                .options(selectinload("*"))
+                .offset(offset)
+                .limit(limit)
+            )
             result = await session.execute(query)
             return result.scalars().all()
 
@@ -36,6 +44,26 @@ class BaseDAO:
             await session.commit()
             await session.refresh(instance)
             return instance
+
+    @classmethod
+    async def update(cls, id, **data):
+        data = {key: value for key, value in data.items() if value is not None}
+
+        async with async_session() as session:
+            query = (
+                update(cls.model)
+                .filter_by(id=id)
+                .values(**data)
+                .returning(cls.model)
+                .execution_options(synchronize_session="fetch")
+            )
+            result = await session.execute(query)
+            await session.commit()
+
+            updated_instance = result.unique().scalar_one_or_none()
+            if updated_instance:
+                await session.refresh(updated_instance)
+            return updated_instance
 
     @classmethod
     async def add_all(cls, rows: list[dict]):

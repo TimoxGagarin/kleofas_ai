@@ -1,7 +1,29 @@
+from datetime import datetime
 from enum import Enum as PyEnum
+from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, String, func
-from sqlalchemy.orm import DeclarativeBase, relationship
+from faker import Faker
+from fastapi import Depends, Request
+from fastapi_users.db import (
+    SQLAlchemyBaseOAuthAccountTableUUID,
+    SQLAlchemyBaseUserTableUUID,
+)
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
+from sqlalchemy import UUID as GUID
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    String,
+    func,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from api.src.db.config import get_async_session
 
 
 class Base(DeclarativeBase):
@@ -11,36 +33,70 @@ class Base(DeclarativeBase):
         return {k: self.__dict__[k] for k in self.__dict__ if "_sa_" != k[:4]}
 
     def __repr__(self):
-        return f"""<{self.__class__.__name__}({[', '.join('%s=%s' % (k, self.__dict__[k])
-                                             for k in self.__dict__ if '_sa_' != k[:4])]}"""
+        return f"""<{self.__class__.__name__}({
+            [
+                ", ".join(
+                    "%s=%s" % (k, self.__dict__[k])
+                    for k in self.__dict__
+                    if "_sa_" != k[:4]
+                )
+            ]
+        }"""
 
 
-class SSOProvider(Base):
-    __tablename__ = "sso_providers"
+class OAuthAccount(SQLAlchemyBaseOAuthAccountTableUUID, Base):
+    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        GUID, ForeignKey("user.id", ondelete="cascade"), nullable=False
+    )
 
-    id = Column(BigInteger, primary_key=True)
-    name = Column(String, nullable=False)
-    client_id = Column(String, nullable=False)
-    client_secret = Column(String, nullable=False)
+    user: Mapped["Users"] = relationship("Users", back_populates="oauth_accounts")
 
-    users = relationship("User", back_populates="sso_provider")
+    async def __admin_repr__(self, request: Request):
+        return f"{self.user_id} {self.oauth_name} Oauth Account"
 
 
-class User(Base):
-    __tablename__ = "users"
+class Users(SQLAlchemyBaseUserTableUUID, Base):
+    __tablename__ = "user"
 
-    id = Column(BigInteger, primary_key=True)
-    user_id = Column(BigInteger, nullable=False)
-    sso_type = Column(BigInteger, ForeignKey("sso_providers.id"), nullable=False)
-    username = Column(String, nullable=False)
-    email = Column(String, nullable=False)
-    avatar = Column(String, nullable=False)
-    is_admin = Column(Boolean, nullable=False)
-    is_enabled = Column(Boolean, nullable=False)
+    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid4)
+    username: Mapped[str] = mapped_column(
+        String(length=320), index=True, nullable=False
+    )
+    email: Mapped[str] = mapped_column(
+        String(length=320), unique=True, index=True, nullable=False
+    )
+    avatar_id: Mapped[str | None] = mapped_column(
+        String(length=320), default="files/templates/profile.png", nullable=False
+    )
+    hashed_password: Mapped[str | None] = mapped_column(
+        String(length=1024), nullable=True
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = Column(
+        DateTime, server_default=func.now(), nullable=False
+    )
 
-    sso_provider = relationship("SSOProvider", back_populates="users")
+    oauth_accounts: Mapped[list[OAuthAccount]] = relationship(
+        "OAuthAccount", lazy="joined"
+    )
     courses = relationship("Course", secondary="user_courses", back_populates="users")
     messages = relationship("Message", back_populates="user")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.username:
+            fake = Faker()
+            self.username = f"{fake.first_name()} {fake.last_name()}"
+
+    async def __admin_repr__(self, request: Request):
+        return self.username
+
+
+async def get_user_db(session: AsyncSession = Depends(get_async_session)):
+    yield SQLAlchemyUserDatabase(session, Users, OAuthAccount)
 
 
 class Course(Base):
@@ -51,14 +107,14 @@ class Course(Base):
     description = Column(String, nullable=False)
     default_prompt = Column(String, nullable=False)
 
-    users = relationship("User", secondary="user_courses", back_populates="courses")
+    users = relationship("Users", secondary="user_courses", back_populates="courses")
     messages = relationship("Message", back_populates="course")
 
 
 class UserCourses(Base):
     __tablename__ = "user_courses"
 
-    user_id = Column(BigInteger, ForeignKey("users.id"), primary_key=True)
+    user_id = Column(GUID, ForeignKey("user.id"), primary_key=True)
     course_id = Column(BigInteger, ForeignKey("courses.id"), primary_key=True)
 
 
@@ -80,11 +136,19 @@ class Message(Base):
     text = Column(String, nullable=False)
     type = Column(Enum(TypeEnum), nullable=False)
     course_id = Column(BigInteger, ForeignKey("courses.id"), nullable=False)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    user_id = Column(GUID, ForeignKey("user.id"), nullable=False)
 
-    user = relationship("User", back_populates="messages")
-    materials = relationship("Material", back_populates="message")
-    tests = relationship("Test", back_populates="message")
+    user = relationship("Users", back_populates="messages")
+    materials = relationship(
+        "Material", back_populates="message", cascade="all, delete", lazy="joined"
+    )
+    test = relationship(
+        "Test",
+        back_populates="message",
+        uselist=False,
+        cascade="all, delete",
+        lazy="joined",
+    )
     course = relationship("Course", back_populates="messages")
 
 
@@ -93,7 +157,9 @@ class Material(Base):
 
     id = Column(BigInteger, primary_key=True)
     url = Column(String, nullable=False)
-    message_id = Column(BigInteger, ForeignKey("messages.id"), nullable=False)
+    message_id = Column(
+        BigInteger, ForeignKey("messages.id", ondelete="CASCADE"), nullable=False
+    )
 
     message = relationship("Message", back_populates="materials")
 
@@ -103,10 +169,14 @@ class Test(Base):
 
     id = Column(BigInteger, primary_key=True)
     title = Column(String, nullable=False)
-    message_id = Column(BigInteger, ForeignKey("messages.id"), nullable=False)
+    message_id = Column(
+        BigInteger, ForeignKey("messages.id", ondelete="CASCADE"), nullable=False
+    )
 
-    message = relationship("Message", back_populates="tests")
-    questions = relationship("Question", back_populates="test")
+    message = relationship("Message", back_populates="test")
+    questions = relationship(
+        "Question", back_populates="test", cascade="all, delete", lazy="joined"
+    )
 
 
 class Question(Base):
@@ -115,6 +185,8 @@ class Question(Base):
     id = Column(BigInteger, primary_key=True)
     text = Column(String, nullable=False)
     is_correct = Column(Boolean, nullable=False)
-    test_id = Column(BigInteger, ForeignKey("tests.id"), nullable=False)
+    test_id = Column(
+        BigInteger, ForeignKey("tests.id", ondelete="CASCADE"), nullable=False
+    )
 
     test = relationship("Test", back_populates="questions")

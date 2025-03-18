@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from api.src.schemas.base import Pagination
+
 
 class CreateCourse(BaseModel):
     title: str
@@ -23,3 +25,8 @@ class DisplayCourse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SearchCourse(Pagination):
+    id: int | None = None
+    title: str | None = None

@@ -3,5 +3,9 @@ sqlalchemy
 uvicorn
 pydantic
 pydantic_settings
-fastapi-sso
 redis
+fastapi-users[sqlalchemy]
+celery
+flower
+httpx_oauth
+faker
