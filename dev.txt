@@ -1,7 +1,0 @@
-alembic
-pytest
-httpx
-pytest-asyncio
-pre-commit
-pytest-mock
-asyncpg

@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    command: ["/app/docker/app.sh"]
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
+    env_file:
+      - conf/.env
+  
+  db:
+    image: postgres:17
+    environment:
+      - POSTGRES_HOST=${DB_HOST}
+      - POSTGRES_PORT=${DB_PORT}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+    expose:
+      - "5432"
+
+  redis:
+    image: redis:7
+    expose:
+      - "6379"
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/docker/celery.sh", "celery"]
+    env_file:
+      - conf/.env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
+    volumes:
+      - celery_data:/app
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/docker/celery.sh", "flower"]
+    ports:
+      - "5555:5555"
+    env_file:
+      - conf/.env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      - celery
+
+volumes:
+  postgres_data:
+  celery_data:

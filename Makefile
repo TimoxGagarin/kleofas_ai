@@ -1,6 +1,3 @@
-build:
-	pip install -r api/requirements.txt
-
 migration:
 	alembic revision --autogenerate -m "${MESSAGE}"
 
