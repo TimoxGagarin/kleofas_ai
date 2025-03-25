@@ -1,99 +1,333 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
   <head>
-    <title>Test chat</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Учебный чат</title>
+    <style>
+      :root {
+        --primary-color: #4361ee;
+        --secondary-color: #3f37c9;
+        --ai-color: #4cc9f0;
+        --user-color: #4895ef;
+        --background: #f8f9fa;
+        --message-bg: #ffffff;
+        --text-color: #333333;
+        --border-radius: 12px;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--background);
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--text-color);
+      }
+
+      h1 {
+        color: var(--primary-color);
+        margin-bottom: 20px;
+      }
+
+      .chat-container {
+        width: 100%;
+        max-width: 600px;
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 70vh;
+      }
+
+      #chatbox {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .message {
+        max-width: 80%;
+        padding: 12px 16px;
+        border-radius: var(--border-radius);
+        line-height: 1.4;
+        word-wrap: break-word;
+        animation: fadeIn 0.3s ease;
+        position: relative;
+      }
+
+      .user-message {
+        align-self: flex-end;
+        background-color: var(--user-color);
+        color: white;
+        border-bottom-right-radius: 4px;
+      }
+
+      .ai-message {
+        align-self: flex-start;
+        background-color: var(--ai-color);
+        color: white;
+        border-bottom-left-radius: 4px;
+      }
+
+      .message-username {
+        font-weight: bold;
+        font-size: 0.8em;
+        margin-bottom: 4px;
+      }
+
+      .input-area {
+        display: flex;
+        padding: 15px;
+        background-color: #f1f3f5;
+        border-top: 1px solid #e9ecef;
+      }
+
+      #message {
+        flex-grow: 1;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 24px;
+        outline: none;
+        font-size: 16px;
+        transition: border 0.3s;
+      }
+
+      #message:focus {
+        border-color: var(--primary-color);
+      }
+
+      button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 24px;
+        padding: 0 24px;
+        margin-left: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: var(--secondary-color);
+      }
+
+      .typing-indicator {
+        display: none;
+        align-self: flex-start;
+        background-color: var(--ai-color);
+        color: white;
+        padding: 8px 16px;
+        border-radius: var(--border-radius);
+        margin-bottom: 12px;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.6;
+        }
+      }
+
+      .loading-more {
+        text-align: center;
+        padding: 10px;
+        color: #666;
+        font-size: 0.9em;
+      }
+
+      /* Адаптивность */
+      @media (max-width: 640px) {
+        .chat-container {
+          height: 80vh;
+        }
+
+        .message {
+          max-width: 90%;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h1>Test chat</h1>
-    <div
-      id="chatbox"
-      style="
-        border: 1px solid #ccc;
-        width: 300px;
-        height: 200px;
-        overflow-y: auto;
-      "
-    ></div>
-    <form>
-      <input type="text" id="message" required />
-      <button type="button" onclick="sendMessage()">Отправить</button>
-    </form>
+    <h1>Учебный чат</h1>
+
+    <div class="chat-container">
+      <div id="chatbox">
+        <div class="typing-indicator" id="typingIndicator">AI печатает...</div>
+      </div>
+
+      <div class="input-area">
+        <input
+          type="text"
+          id="message"
+          placeholder="Напишите сообщение..."
+          required
+        />
+        <button type="button" onclick="sendMessage()">Отправить</button>
+      </div>
+    </div>
 
     <script>
       let isLoading = false
       let socket
       const chatbox = document.getElementById("chatbox")
-      socket = new WebSocket("ws://localhost:8000/messages/chat/{{course_id}}")
-      socket.onmessage = function (event) {
-        const data = JSON.parse(event.data)
-        if (data.results.length < 20 && data.type !== "new_message") {
-          chatbox.onscroll = null
-        }
+      const typingIndicator = document.getElementById("typingIndicator")
+      const messageInput = document.getElementById("message")
 
-        if (data.type === "load_init" || data.type === "new_message") {
-          data.results.reverse().forEach((msg) => {
-            const messageElement = document.createElement("div")
-            let user = msg["user"]
-            let message = msg["message"]
-
-            // Обработка AI-сообщений
-            if (message.type == "ai") {
-              messageElement.textContent = "ASSISTANT: " + message["text"]
-            } else {
-              messageElement.textContent =
-                user["username"] + ": " + message["text"]
-            }
-
-            chatbox.appendChild(messageElement)
-          })
-          chatbox.scrollTop = chatbox.scrollHeight
-        } else if (data.type === "load_prev") {
-          const previousScrollHeight = chatbox.scrollHeight
-          data.results.forEach((msg) => {
-            const messageElement = document.createElement("div")
-            let user = msg["user"]
-            let message = msg["message"]
-            console.log(msg.type)
-            if (message.type == "ai") {
-              messageElement.textContent = "ASSISTANT: " + message["text"]
-            } else {
-              messageElement.textContent =
-                user["username"] + ": " + message["text"]
-            }
-
-            chatbox.insertBefore(messageElement, chatbox.firstChild)
-          })
-          const newScrollHeight = chatbox.scrollHeight
-          chatbox.scrollTop = newScrollHeight - previousScrollHeight
-        }
-        isLoading = false
-      }
-
-      function sendMessage() {
-        const message = document.getElementById("message").value
-        if (socket && message) {
-          socket.send(`msg: ${message}`)
-          document.getElementById("message").value = ""
-        }
-      }
-
-      socket.onopen = async function () {
-        const token_resp = await fetch(
-          "http://localhost:8000/users/me/ws_token",
-          { credentials: "include" }
+      // Подключение к WebSocket
+      function connectWebSocket() {
+        socket = new WebSocket(
+          `ws://${window.location.host}/messages/chat/{{course_id}}`
         )
-        const token = (await token_resp.json()).token
-        isLoading = true
-        socket.send(token)
-        socket.send("load_init")
+
+        socket.onmessage = function (event) {
+          const data = JSON.parse(event.data)
+
+          // Скрываем индикатор набора
+          typingIndicator.style.display = "none"
+
+          if (data.results.length < 20 && data.type !== "new_message") {
+            chatbox.onscroll = null
+          }
+
+          if (data.type === "load_init" || data.type === "new_message") {
+            data.results.reverse().forEach((msg) => {
+              addMessageToChat(msg, true)
+            })
+            scrollToBottom()
+          } else if (data.type === "load_prev") {
+            const previousScrollHeight = chatbox.scrollHeight
+
+            data.results.forEach((msg) => {
+              addMessageToChat(msg, false)
+            })
+
+            const newScrollHeight = chatbox.scrollHeight
+            chatbox.scrollTop = newScrollHeight - previousScrollHeight
+          }
+
+          isLoading = false
+        }
+
+        socket.onopen = async function () {
+          try {
+            const token_resp = await fetch("/users/me/ws_token", {
+              credentials: "include",
+            })
+            const token = (await token_resp.json()).token
+            isLoading = true
+            socket.send(token)
+            socket.send("load_init")
+          } catch (error) {
+            console.error("Ошибка подключения:", error)
+          }
+        }
+
+        socket.onclose = function () {
+          console.log("Соединение закрыто")
+          // Пытаемся переподключиться через 5 секунд
+          setTimeout(connectWebSocket, 5000)
+        }
+
+        socket.onerror = function (error) {
+          console.error("WebSocket ошибка:", error)
+        }
       }
 
+      // Добавление сообщения в чат
+      function addMessageToChat(msg, append = true) {
+        const messageElement = document.createElement("div")
+        let user = msg["user"]
+        let message = msg["message"]
+
+        messageElement.classList.add("message")
+
+        if (message.type == "ai") {
+          messageElement.classList.add("ai-message")
+          messageElement.innerHTML = `
+                    <div class="message-username">AI Ассистент</div>
+                    <div>${message.text}</div>
+                `
+        } else {
+          messageElement.classList.add("user-message")
+          messageElement.innerHTML = `
+                    <div class="message-username">${user.username}</div>
+                    <div>${message.text}</div>
+                `
+        }
+
+        if (append) {
+          chatbox.appendChild(messageElement)
+        } else {
+          chatbox.insertBefore(messageElement, chatbox.children[1]) // После индикатора загрузки
+        }
+      }
+
+      // Отправка сообщения
+      function sendMessage() {
+        const message = messageInput.value.trim()
+        if (socket && message) {
+          // Показываем индикатор набора для AI
+          typingIndicator.style.display = "block"
+          scrollToBottom()
+
+          socket.send(`msg: ${message}`)
+          messageInput.value = ""
+
+          // Фокус остается на поле ввода
+          messageInput.focus()
+        }
+      }
+
+      // Прокрутка вниз
+      function scrollToBottom() {
+        setTimeout(() => {
+          chatbox.scrollTop = chatbox.scrollHeight
+        }, 100)
+      }
+
+      // Отправка по Enter
+      messageInput.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          sendMessage()
+        }
+      })
+
+      // Бесконечная загрузка при прокрутке
       chatbox.onscroll = function () {
         if (!isLoading && chatbox.scrollTop === 0) {
           isLoading = true
           socket.send("load_prev")
         }
       }
+
+      // Инициализация соединения
+      connectWebSocket()
     </script>
   </body>
 </html>

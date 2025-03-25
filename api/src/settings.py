@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     MICROSOFT_CLIENT_ID: str = ""
     MICROSOFT_CLIENT_SECRET: str = ""
 
+    OLLAMA_HOST: str
+    OLLAMA_PORT: int
+
     model_config = SettingsConfigDict(env_file="conf/.env", env_file_encoding="utf-8")
 
     templates: Jinja2Templates = Jinja2Templates(directory="api/templates")

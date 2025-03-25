@@ -23,6 +23,7 @@ class MessagesDAO(BaseDAO):
                 .filter_by(**filter_by)
                 .offset(offset)
                 .limit(limit)
+                .order_by(cls.model.created_at.desc())
             )
             result = await session.execute(query)
             return result.scalars().all()

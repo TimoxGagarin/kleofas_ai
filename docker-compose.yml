@@ -56,6 +56,16 @@ services:
     depends_on:
       - celery
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "5005:11434"
+    volumes:
+      - ollama_data:/app/data
+    restart: always
+
 volumes:
   postgres_data:
   celery_data:
+  ollama_data:
