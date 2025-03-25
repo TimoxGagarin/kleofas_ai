@@ -26,3 +26,23 @@ class MessagesDAO(BaseDAO):
             )
             result = await session.execute(query)
             return result.scalars().all()
+
+    @classmethod
+    async def find_all_with_user(
+        cls, offset: int | None = None, limit: int | None = None, **filter_by
+    ):
+        async with async_session() as session:
+            query = (
+                select(cls.model)
+                .options(
+                    selectinload(cls.model.user),
+                    selectinload(cls.model.materials),
+                    selectinload(cls.model.test).options(selectinload(Test.questions)),
+                )
+                .filter_by(**filter_by)
+                .offset(offset)
+                .limit(limit)
+                .order_by(cls.model.created_at.desc())
+            )
+            result = await session.execute(query)
+            return result.scalars().all()

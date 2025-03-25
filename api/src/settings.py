@@ -1,3 +1,4 @@
+from fastapi.templating import Jinja2Templates
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from redis.asyncio import Redis
@@ -37,6 +38,8 @@ class Settings(BaseSettings):
     MICROSOFT_CLIENT_SECRET: str = ""
 
     model_config = SettingsConfigDict(env_file="conf/.env", env_file_encoding="utf-8")
+
+    templates: Jinja2Templates = Jinja2Templates(directory="api/templates")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

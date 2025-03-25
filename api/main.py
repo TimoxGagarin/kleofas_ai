@@ -14,12 +14,14 @@ from api.src.admin.views import (
     UserView,
 )
 from api.src.controllers.courses import router as course_router
+from api.src.controllers.debug import router as debug_router
 from api.src.controllers.materials import router as material_router
 from api.src.controllers.messages import router as message_router
 from api.src.controllers.tests import router as test_router
 from api.src.controllers.users import router as user_router
 from api.src.db.config import async_engine
 from api.src.db.models import Course, Material, Message, OAuthAccount, Test, Users
+from api.src.settings import settings
 
 app = FastAPI()
 
@@ -38,6 +40,8 @@ app.include_router(course_router)
 app.include_router(user_router)
 app.include_router(test_router)
 app.include_router(material_router)
+if settings.DEBUG:
+    app.include_router(debug_router)
 
 admin = Admin(
     async_engine,

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test chat</title>
+  </head>
+  <body>
+    <h1>Test chat</h1>
+    <div
+      id="chatbox"
+      style="
+        border: 1px solid #ccc;
+        width: 300px;
+        height: 200px;
+        overflow-y: auto;
+      "
+    ></div>
+    <form>
+      <input type="text" id="message" required />
+      <button type="button" onclick="sendMessage()">Отправить</button>
+    </form>
+
+    <script>
+      let isLoading = false
+      let socket
+      const chatbox = document.getElementById("chatbox")
+      socket = new WebSocket("ws://localhost:8000/messages/chat/{{course_id}}")
+      socket.onmessage = function (event) {
+        const data = JSON.parse(event.data)
+        if (data.results.length < 20 && data.type !== "new_message") {
+          chatbox.onscroll = null
+        }
+
+        if (data.type === "load_init" || data.type === "new_message") {
+          data.results.reverse().forEach((msg) => {
+            const messageElement = document.createElement("div")
+            let user = msg["user"]
+            let message = msg["message"]
+
+            // Обработка AI-сообщений
+            if (message.type == "ai") {
+              messageElement.textContent = "ASSISTANT: " + message["text"]
+            } else {
+              messageElement.textContent =
+                user["username"] + ": " + message["text"]
+            }
+
+            chatbox.appendChild(messageElement)
+          })
+          chatbox.scrollTop = chatbox.scrollHeight
+        } else if (data.type === "load_prev") {
+          const previousScrollHeight = chatbox.scrollHeight
+          data.results.forEach((msg) => {
+            const messageElement = document.createElement("div")
+            let user = msg["user"]
+            let message = msg["message"]
+            console.log(msg.type)
+            if (message.type == "ai") {
+              messageElement.textContent = "ASSISTANT: " + message["text"]
+            } else {
+              messageElement.textContent =
+                user["username"] + ": " + message["text"]
+            }
+
+            chatbox.insertBefore(messageElement, chatbox.firstChild)
+          })
+          const newScrollHeight = chatbox.scrollHeight
+          chatbox.scrollTop = newScrollHeight - previousScrollHeight
+        }
+        isLoading = false
+      }
+
+      function sendMessage() {
+        const message = document.getElementById("message").value
+        if (socket && message) {
+          socket.send(`msg: ${message}`)
+          document.getElementById("message").value = ""
+        }
+      }
+
+      socket.onopen = async function () {
+        const token_resp = await fetch(
+          "http://localhost:8000/users/me/ws_token",
+          { credentials: "include" }
+        )
+        const token = (await token_resp.json()).token
+        isLoading = true
+        socket.send(token)
+        socket.send("load_init")
+      }
+
+      chatbox.onscroll = function () {
+        if (!isLoading && chatbox.scrollTop === 0) {
+          isLoading = true
+          socket.send("load_prev")
+        }
+      }
+    </script>
+  </body>
+</html>

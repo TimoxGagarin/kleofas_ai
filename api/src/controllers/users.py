@@ -3,10 +3,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi_users import FastAPIUsers
+from fastapi_users.authentication import RedisStrategy
 
 from api.src.auth.manager import get_user_manager
 from api.src.auth.oauth import enabled_providers
-from api.src.auth.transport import auth_backend
+from api.src.auth.transport import auth_backend, get_redis_strategy
 from api.src.dao.courses import CoursesDAO
 from api.src.dao.messages import MessagesDAO
 from api.src.dao.user_courses import UserCoursesDAO
@@ -144,3 +145,11 @@ async def get_my_course_messages(
         course_id=course_id, user_id=user.id, offset=offset, limit=limit
     )
     return messages
+
+
+@router.get("/me/ws_token")
+async def get_ws_token(
+    redis: RedisStrategy = Depends(get_redis_strategy),
+    user: DisplayUser = Depends(get_current_active_user),
+):
+    return {"token": await redis.write_token(user)}

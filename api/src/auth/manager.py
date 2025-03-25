@@ -21,12 +21,18 @@ class UserManager(UUIDIDMixin, BaseUserManager[Users, UUID]):
             response.status_code = 301
             response.headers["Location"] = settings.BASE_URL
 
-    async def on_after_forgot_password(self, user: Users, token: str, request: Optional[Request] = None):
+    async def on_after_forgot_password(
+        self, user: Users, token: str, request: Optional[Request] = None
+    ):
         code = str(secrets.randbelow(1000000)).zfill(6)
         await redis.setex(code, CODE_MAX_AGE, token)
-        verification_flow.delay(code, user.to_dict(), "change_password", "reset_password.html")
+        verification_flow.delay(
+            code, user.to_dict(), "change_password", "reset_password.html"
+        )
 
-    async def on_after_request_verify(self, user: Users, token: str, request: Optional[Request] = None):
+    async def on_after_request_verify(
+        self, user: Users, token: str, request: Optional[Request] = None
+    ):
         code = str(secrets.randbelow(1000000)).zfill(6)
         await redis.setex(code, CODE_MAX_AGE, token)
         verification_flow.delay(code, user.to_dict(), "verify", "verify_email.html")
